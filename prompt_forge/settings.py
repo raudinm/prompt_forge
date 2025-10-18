@@ -97,12 +97,25 @@ DATABASES = {
     }
 }
 
-# Test database configuration - use SQLite for isolated testing
-if 'test' in sys.argv:
-    DATABASES['default'] = {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': ':memory:',
-    }
+# CI-specific database configuration
+# Use PostgreSQL in CI if available, fallback to SQLite
+if os.getenv('CI') == 'true':
+    if os.getenv('DATABASE_URL'):
+        # Use PostgreSQL in CI if DATABASE_URL is provided
+        DATABASES['default'] = {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DATABASE_NAME', 'test_db'),
+            'USER': os.getenv('DATABASE_USER', 'postgres'),
+            'HOST': os.getenv('DATABASE_HOST', 'localhost'),
+            'PORT': os.getenv('DATABASE_PORT', '5432'),
+            'PASSWORD': os.getenv('DATABASE_PASSWORD', ''),
+        }
+    else:
+        # Fallback to SQLite for CI without external DB
+        DATABASES['default'] = {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:',
+        }
 
 
 # Password validation

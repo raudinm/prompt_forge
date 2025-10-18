@@ -13,6 +13,9 @@ from .models import Prompt, PromptEmbedding, PromptMetadata
 from .serializers import PromptSerializer
 from .throttles import CustomBurstRateThrottle, CustomSustainedRateThrottle
 
+# Path to the FAISS index file stored on disk
+INDEX_PATH = os.path.join(settings.BASE_DIR, 'faiss_prompt_index.faiss')
+
 
 class PromptCreateView(APIView):
     """
@@ -68,10 +71,6 @@ class PromptCreateView(APIView):
 
         serializer = PromptSerializer(prompt)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-
-# Path to the FAISS index file stored on disk
-INDEX_PATH = os.path.join(settings.BASE_DIR, 'faiss_prompt_index.faiss')
 
 
 class SimilarPromptsView(APIView):
