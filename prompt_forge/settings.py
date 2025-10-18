@@ -44,6 +44,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'rest_framework',
+    'channels',
+    'forge'
 ]
 
 MIDDLEWARE = [
@@ -75,6 +77,12 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'prompt_forge.wsgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
@@ -120,7 +128,16 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 10
+    'PAGE_SIZE': 10,
+
+    'DEFAULT_THROTTLE_CLASSES': [
+        'forge.throttles.CustomBurstRateThrottle',
+        'forge.throttles.CustomSustainedRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'burst': '1/second',
+        'sustained': '10/minute',
+    }
 }
 
 SIMPLE_JWT = {
