@@ -8,9 +8,9 @@ https://docs.djangoproject.com/en/5.2/howto/deployment/asgi/
 """
 
 import os
-from channels.auth import AuthMiddlewareStack
 from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
+from forge.middleware.jwt_auth import JwtAuthMiddleware
 import forge.routing
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'prompt_forge.settings')
@@ -21,7 +21,7 @@ django_asgi_app = get_asgi_application()
 # ASGI application with Channels
 application = ProtocolTypeRouter({
     "http": django_asgi_app,
-    "websocket": AuthMiddlewareStack(
+    "websocket": JwtAuthMiddleware(
         URLRouter(
             forge.routing.websocket_urlpatterns
         )

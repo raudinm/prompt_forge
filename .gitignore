@@ -136,3 +136,6 @@ staticfiles/
 # Temporary files
 *.tmp
 *.temp
+
+faiss_prompt_index.faiss
+test.js

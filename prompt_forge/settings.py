@@ -36,6 +36,7 @@ ALLOWED_HOSTS = config(
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -44,7 +45,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'rest_framework',
-    'channels',
     'forge'
 ]
 
@@ -76,7 +76,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'prompt_forge.wsgi.application'
+ASGI_APPLICATION = 'prompt_forge.asgi.application'
 
 CHANNEL_LAYERS = {
     'default': {

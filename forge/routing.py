@@ -1,6 +1,6 @@
 from django.urls import re_path
-from . import consumers
+from . import consumer
 
 websocket_urlpatterns = [
-    re_path(r'ws/prompts/$', consumers.PromptConsumer.as_asgi()),
+    re_path(r'ws/prompts/$', consumer.PromptConsumer.as_asgi()),
 ]
