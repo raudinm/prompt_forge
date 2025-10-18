@@ -10,20 +10,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test_db
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
     steps:
       - uses: actions/checkout@v4
 
@@ -41,33 +27,26 @@ jobs:
         run: |
           python manage.py migrate
         env:
-          DATABASE_NAME: test_db
-          DATABASE_USER: postgres
-          DATABASE_PASSWORD: postgres
-          DATABASE_HOST: localhost
-          DATABASE_PORT: 5432
-          SECRET_KEY: test-secret-key-for-ci
-          DEBUG: True
-
-      - name: Run tests with PostgreSQL
-        run: |
-          pytest --ds=prompt_forge.settings -v
-        env:
           CI: true
-          DATABASE_NAME: test_db
-          DATABASE_USER: postgres
-          DATABASE_PASSWORD: postgres
-          DATABASE_HOST: localhost
-          DATABASE_PORT: 5432
           SECRET_KEY: test-secret-key-for-ci
           DEBUG: True
+          # Postgres env to avoid CI errors
+          DATABASE_NAME: "test_db"
+          DATABASE_USER: "postgres"
+          DATABASE_PASSWORD: "postgres"
+          DATABASE_HOST: "localhost"
+          DATABASE_PORT: 5432
 
-      - name: Run tests with SQLite fallback
+      - name: Run tests with SQLite
         run: |
           pytest --ds=prompt_forge.settings -v
         env:
           CI: true
           SECRET_KEY: test-secret-key-for-ci
           DEBUG: True
-        # Run SQLite tests if PostgreSQL tests fail
-        if: failure()
+          # Postgres env to avoid CI errors
+          DATABASE_NAME: "test_db"
+          DATABASE_USER: "postgres"
+          DATABASE_PASSWORD: "postgres"
+          DATABASE_HOST: "localhost"
+          DATABASE_PORT: 5432

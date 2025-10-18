@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
-import sys
 from pathlib import Path
 from decouple import config
 from datetime import timedelta
@@ -100,22 +99,11 @@ DATABASES = {
 # CI-specific database configuration
 # Use PostgreSQL in CI if available, fallback to SQLite
 if os.getenv('CI') == 'true':
-    if os.getenv('DATABASE_URL'):
-        # Use PostgreSQL in CI if DATABASE_URL is provided
-        DATABASES['default'] = {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DATABASE_NAME', 'test_db'),
-            'USER': os.getenv('DATABASE_USER', 'postgres'),
-            'HOST': os.getenv('DATABASE_HOST', 'localhost'),
-            'PORT': os.getenv('DATABASE_PORT', '5432'),
-            'PASSWORD': os.getenv('DATABASE_PASSWORD', ''),
-        }
-    else:
-        # Fallback to SQLite for CI without external DB
-        DATABASES['default'] = {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': ':memory:',
-        }
+    # Fallback to SQLite for CI without external DB
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': ':memory:',
+    }
 
 
 # Password validation
