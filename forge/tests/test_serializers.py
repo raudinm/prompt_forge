@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.contrib.auth.models import User
 from unittest.mock import MagicMock
-from forge.serializers import PromptSerializer, PromptEmbeddingSerializer, PromptMetadataSerializer
+from forge.serializers import PromptSerializer, PromptEmbeddingSerializer, PromptMetadataSerializer, SignUpSerializer
 
 
 class PromptSerializerTest(TestCase):
@@ -67,3 +67,23 @@ class PromptMetadataSerializerTest(TestCase):
         }
         serializer = PromptMetadataSerializer(data=data)
         self.assertTrue(serializer.is_valid())
+
+
+class SignUpSerializerTest(TestCase):
+    """Test cases for SignUpSerializer"""
+
+    def test_signup_serializer_valid_data(self):
+        """Test SignUpSerializer with valid data and password hashing"""
+        data = {
+            'username': 'testuser',
+            'email': 'test@example.com',
+            'password': 'securepass123'
+        }
+        serializer = SignUpSerializer(data=data)
+        self.assertTrue(serializer.is_valid())
+        user = serializer.save()
+        self.assertEqual(user.username, 'testuser')
+        self.assertEqual(user.email, 'test@example.com')
+        # Verify password is hashed
+        self.assertTrue(user.check_password('securepass123'))
+        self.assertNotEqual(user.password, 'securepass123')

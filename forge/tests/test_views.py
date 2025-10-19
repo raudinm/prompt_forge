@@ -6,6 +6,7 @@ from forge.models import Prompt, PromptEmbedding
 from unittest.mock import patch
 from forge.tests import TestUserFixturesMixin
 from django.db import connection
+from rest_framework.test import APIClient
 
 
 class PromptCreateViewTest(TestCase):
@@ -96,6 +97,38 @@ class ComprehensiveMockingTest(TestCase, TestUserFixturesMixin):
 
     def setUp(self):
         super().setUp()
+
+
+class SignUpViewTest(TestCase):
+    """Test cases for SignUpView"""
+
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_signup_successful(self):
+        """Test successful user creation via SignUpView"""
+        data = {
+            'username': 'newuser',
+            'email': 'newuser@example.com',
+            'password': 'securepass123'
+        }
+        response = self.client.post('/api/signup/', data, format='json')
+        self.assertEqual(response.status_code, 201)
+        self.assertIn('message', response.data)
+        self.assertTrue(User.objects.filter(username='newuser').exists())
+        user = User.objects.get(username='newuser')
+        self.assertTrue(user.check_password('securepass123'))
+
+    def test_signup_validation_errors(self):
+        """Test validation errors in SignUpView"""
+        # Missing password
+        data = {
+            'username': 'newuser',
+            'email': 'newuser@example.com'
+        }
+        response = self.client.post('/api/signup/', data, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('password', response.data)
 
 
 class CIEnvironmentTest(TestCase):

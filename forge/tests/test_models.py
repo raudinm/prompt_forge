@@ -332,3 +332,20 @@ class MockDatabaseTest(TestCase):
 
         self.assertEqual(result.text, 'Mocked prompt')
         self.assertEqual(result.response, 'Mocked response')
+
+
+class UserModelTest(TestCase):
+    """Test cases for User model password hashing"""
+
+    def test_user_password_hashing(self):
+        """Test that User model properly hashes passwords"""
+        user = User.objects.create_user(
+            username='testuser',
+            email='test@example.com',
+            password='plaintextpass123'
+        )
+        # Verify password is hashed (not stored in plain text)
+        self.assertNotEqual(user.password, 'plaintextpass123')
+        # Verify password checking works
+        self.assertTrue(user.check_password('plaintextpass123'))
+        self.assertFalse(user.check_password('wrongpass'))
