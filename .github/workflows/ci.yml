@@ -70,3 +70,67 @@ jobs:
           DATABASE_PASSWORD: "postgres"
           DATABASE_HOST: "localhost"
           DATABASE_PORT: 5432
+
+  deploy:
+    name: Deploy PromptForge App
+    runs-on: ubuntu-latest
+    needs: test
+    if: success()
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Create .env file
+        run: |
+          echo "📝 Creating .env file from secret..."
+          rm -f .env
+          echo "${{ secrets.ENV_VARS }}" > .env
+
+      - name: Set up SSH key
+        run: |
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ssh_deploy_key
+          chmod 600 ssh_deploy_key
+
+      - name: Compress project files
+        run: |
+          echo "📦 Compressing project files..."
+          tar --exclude='.git' -czf promptforge.tar.gz .
+
+      - name: Copy project to server
+        run: |
+          echo "🚀 Copying project archive to remote server..."
+          scp -i ssh_deploy_key -o StrictHostKeyChecking=no promptforge.tar.gz \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/tmp/promptforge.tar.gz
+
+      - name: Deploy PromptForge on remote server
+        run: |
+          echo "⚙️ Deploying PromptForge on remote server..."
+          ssh -i ssh_deploy_key -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+            set -e
+
+            APP_DIR="/var/www/html/promptforge"
+            TMP_FILE="/tmp/promptforge.tar.gz"
+
+            echo "🧹 Cleaning old deployment..."
+            sudo rm -rf \$APP_DIR
+            sudo mkdir -p \$APP_DIR
+            sudo chown -R ${{ secrets.DEPLOY_USER }}:${{ secrets.DEPLOY_USER }} \$APP_DIR
+
+            echo "📦 Extracting project files..."
+            sudo tar -xzf \$TMP_FILE -C \$APP_DIR
+            sudo rm \$TMP_FILE
+
+            cd \$APP_DIR
+
+            echo "🐳 Building and starting Docker containers..."
+            docker compose pull || true
+            docker compose build --no-cache
+            docker compose up -d --remove-orphans
+
+            echo "✅ PromptForge deployed successfully!"
+          EOF
+
+      - name: Cleanup local artifacts
+        run: |
+          rm -f ssh_deploy_key promptforge.tar.gz
