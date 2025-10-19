@@ -1,8 +1,8 @@
 import os
 import faiss
 import numpy as np
-from rest_framework import status
 from rest_framework.views import APIView
+from rest_framework import status, generics
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
@@ -10,7 +10,7 @@ from prompt_forge import settings
 from forge.utils import generate_embedding, generate_response
 from forge.websocket_utils import send_to_websocket
 from .models import Prompt, PromptEmbedding, PromptMetadata
-from .serializers import PromptSerializer
+from .serializers import PromptSerializer, SignUpSerializer
 from .throttles import CustomBurstRateThrottle, CustomSustainedRateThrottle
 
 # Path to the FAISS index file stored on disk
@@ -139,3 +139,14 @@ class SimilarPromptsView(APIView):
         similar_prompts = Prompt.objects.filter(id__in=similar_ids)
         serializer = PromptSerializer(similar_prompts, many=True)
         return Response(serializer.data)
+
+
+class SignUpView(generics.CreateAPIView):
+    serializer_class = SignUpSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            return Response({"message": "User created successfully"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

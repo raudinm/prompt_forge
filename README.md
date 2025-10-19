@@ -1,4 +1,4 @@
-# Prompt Forge
+# Prompt Forge [![CI](https://github.com/raudinm/prompt_forge/actions/workflows/ci.yml/badge.svg)](https://github.com/raudinm/prompt_forge/actions/workflows/ci.yml)
 
 A Django-based application for managing AI prompts with WebSocket support.
 
@@ -10,19 +10,97 @@ A Django-based application for managing AI prompts with WebSocket support.
 - PostgreSQL database with vector embeddings support
 - RESTful API with Django REST Framework
 
-## Setup
+## Docker Execution (Recommended)
+
+This is the recommended method for running the application in both development and production-like environments. It provides a consistent, isolated environment with all dependencies containerized.
+
+### Prerequisites
+
+- Docker (version 20.10 or later)
+- Docker Compose (version 2.0 or later)
+
+### Setup Instructions
+
+1. **Clone the repository**
+
+   ```bash
+   git clone https://github.com/raudinm/prompt_forge.git
+   cd prompt-forge
+   ```
+
+2. **Create the .env file**
+
+   Copy the example environment file and configure your settings:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Edit the `.env` file with your desired configuration. The default values in `.env.example` are suitable for local development.
+
+3. **Start the services**
+
+   Use Docker Compose to build and start all services:
+
+   ```bash
+   docker-compose up --build
+   ```
+
+   The first run will take longer as Docker builds the application image and pulls the database images.
+
+4. **Access the services**
+
+   Once the containers are running, you can access the following services:
+
+   - **API**: http://localhost:8000 - The Django REST API
+   - **PgAdmin**: http://localhost:5050 - PostgreSQL administration interface (login with credentials from .env)
+   - **Database**: localhost:7654 - PostgreSQL database (accessible externally for development tools)
+
+### Services Overview
+
+- **api**: Django application running with Gunicorn and Uvicorn workers for ASGI support
+- **db**: PostgreSQL 17 database with persistent data storage
+- **pgadmin**: Web-based PostgreSQL management tool
+
+The services are configured to restart automatically unless manually stopped.
+
+## Local Development Setup (Without Docker)
+
+This section provides instructions for setting up the application for local development without using Docker. This is an alternative to the Docker method described above.
+
+### Prerequisites
+
+- Python 3.8 or later
+- PostgreSQL (version 12 or later) installed and running locally
+
+### Setup Instructions
 
 1. Clone the repository
 2. Create a virtual environment: `python -m venv venv`
 3. Activate the environment: `venv\Scripts\activate` (Windows) or `source venv/bin/activate` (Unix)
 4. Install dependencies: `pip install -r requirements.txt`
-5. Create a `.env` file with required environment variables
+5. Create a `.env` file with required environment variables (see Environment Variables section below)
 6. Run migrations: `python manage.py migrate`
 7. Start the server: `python manage.py runserver`
 
 ## Environment Variables
 
-Create a `.env` file in the project root with the following variables:
+The required environment variables differ slightly between Docker and local development setups. Configure your `.env` file accordingly:
+
+### For Docker Execution
+
+```
+SECRET_KEY=your-secret-key-here
+DEBUG=False
+ALLOWED_HOSTS=localhost,127.0.0.1
+DATABASE_NAME=your_db_name
+DATABASE_USER=your_db_user
+DATABASE_HOST=db
+DATABASE_PORT=5432
+DATABASE_PASSWORD=your_db_password
+```
+
+### For Local Development (Without Docker)
 
 ```
 SECRET_KEY=your-secret-key-here
@@ -96,11 +174,249 @@ CI=true pytest --ds=prompt_forge.settings -v
 
 ## API Endpoints
 
-- `POST /api/token/` - User sigin tokens
-- `POST /api/token/refresh/` - User token refresh
-- `GET /prompts/similar/` - Get similar prompts
-- `POST /prompts/` - Create new prompt
-- WebSocket: `/ws/prompts/` - Real-time prompt updates
+### Authentication Endpoints
+
+#### `POST /api/signup/`
+
+- **Description**: Registers a new user account.
+- **Authentication**: None required
+- **Request Format**:
+  ```json
+  {
+    "username": "string",
+    "email": "string",
+    "password": "string"
+  }
+  ```
+- **Response Format**:
+  - Success (HTTP 201):
+    ```json
+    {
+      "message": "User created successfully"
+    }
+    ```
+  - Error (HTTP 400):
+    ```json
+    {
+      "username": ["This field is required."],
+      "email": ["Enter a valid email address."],
+      "password": ["This field may not be blank."]
+    }
+    ```
+- **Special Considerations**: Username must be unique. Email is optional but recommended for password recovery.
+
+#### `POST /api/token/`
+
+- **Description**: Obtains JWT access and refresh tokens for user authentication.
+- **Authentication**: None required
+- **Request Format**:
+  ```json
+  {
+    "username": "string",
+    "password": "string"
+  }
+  ```
+- **Response Format**:
+  - Success (HTTP 200):
+    ```json
+    {
+      "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+      "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+    }
+    ```
+  - Error (HTTP 401):
+    ```json
+    {
+      "detail": "No active account found with the given credentials"
+    }
+    ```
+- **Special Considerations**: Use the access token in Authorization header as `Bearer <token>` for authenticated requests.
+
+#### `POST /api/token/refresh/`
+
+- **Description**: Refreshes JWT access token using a valid refresh token.
+- **Authentication**: None required
+- **Request Format**:
+  ```json
+  {
+    "refresh": "string"
+  }
+  ```
+- **Response Format**:
+  - Success (HTTP 200):
+    ```json
+    {
+      "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+    }
+    ```
+  - Error (HTTP 401):
+    ```json
+    {
+      "detail": "Token is invalid or expired"
+    }
+    ```
+- **Special Considerations**: Refresh tokens have longer expiration times than access tokens. Store refresh tokens securely.
+
+### Prompt Management Endpoints
+
+#### `POST /prompts/`
+
+- **Description**: Creates a new prompt, generates an AI response, and stores vector embeddings for similarity search.
+- **Authentication**: JWT Bearer token required
+- **Request Format**:
+  ```json
+  {
+    "prompt": "string",
+    "send_via_websocket": false
+  }
+  ```
+- **Response Format**:
+  - Success (HTTP 201):
+    ```json
+    {
+      "id": 1,
+      "user": 1,
+      "text": "What is the capital of France?",
+      "response": "The capital of France is Paris.",
+      "created_at": "2023-10-19T14:18:39.913Z",
+      "metadata": {
+        "model_used": "GPT-2",
+        "sent_via_websocket": false,
+        "extra_info": null
+      },
+      "embedding": {
+        "model_name": "all-MiniLM-L6-v2",
+        "vector": [0.123, 0.456, ...]
+      }
+    }
+    ```
+  - Error (HTTP 400):
+    ```json
+    {
+      "error": "prompt is required"
+    }
+    ```
+- **Special Considerations**: Subject to burst and sustained rate throttling. If `send_via_websocket` is true, the response is also sent via WebSocket to the authenticated user.
+
+#### `GET /prompts/similar/`
+
+- **Description**: Retrieves prompts similar to the provided query using FAISS vector similarity search.
+- **Authentication**: JWT Bearer token required
+- **Request Format**: Query parameter `q` (string)
+  ```
+  GET /prompts/similar/?q=What is machine learning?
+  ```
+- **Response Format**:
+  - Success (HTTP 200):
+    ```json
+    [
+      {
+        "id": 1,
+        "user": 1,
+        "text": "Explain machine learning",
+        "response": "Machine learning is...",
+        "created_at": "2023-10-19T14:18:39.913Z",
+        "metadata": {
+          "model_used": "GPT-2",
+          "sent_via_websocket": false,
+          "extra_info": null
+        },
+        "embedding": {
+          "model_name": "all-MiniLM-L6-v2",
+          "vector": [0.123, 0.456, ...]
+        }
+      }
+    ]
+    ```
+  - Error (HTTP 400):
+    ```json
+    {
+      "error": "query parameter \"q\" is required"
+    }
+    ```
+- **Special Considerations**: Returns up to 5 most similar prompts. FAISS index is persisted on disk for performance. Subject to rate throttling.
+
+### WebSocket Endpoints
+
+#### `WebSocket /ws/prompts/`
+
+- **Description**: Establishes a real-time WebSocket connection for prompt updates.
+- **Authentication**: JWT token required as query parameter `token`
+  ```
+  ws://localhost:8000/ws/prompts/?token=<jwt_access_token>
+  ```
+- **Message Format** (Incoming/Outgoing):
+  ```json
+  {
+    "message": "string",
+    "prompt": "string (optional)",
+    "response": "string (optional)",
+    "embedding_length": "integer (optional)"
+  }
+  ```
+- **Special Considerations**: Connection requires valid JWT access token. Used for real-time updates when creating prompts with `send_via_websocket=true`. Supports both ws (local) and wss (SSL) protocols.
+
+## WebSockets
+
+To test WebSocket connections, create a Node.js script with the following code. This example demonstrates connections to both localhost (ws) and cloud SSL (wss) endpoints, including JWT authentication placeholders and proper error handling.
+
+```javascript
+const WebSocket = require("ws");
+
+// JWT token placeholder - replace with actual token
+const jwtToken = "your-jwt-token-here";
+
+// Example 1: Localhost WebSocket connection (ws)
+const wsLocal = new WebSocket(
+  `ws://localhost:8000/ws/prompts/?token=${jwtToken}`
+);
+
+wsLocal.on("open", function open() {
+  console.log("Connected to localhost WebSocket");
+  // Send a test message
+  wsLocal.send(JSON.stringify({ message: "Hello from test client" }));
+});
+
+wsLocal.on("message", function message(data) {
+  console.log("Received from localhost:", data.toString());
+});
+
+wsLocal.on("error", function error(err) {
+  console.error("Localhost WebSocket error:", err);
+});
+
+wsLocal.on("close", function close() {
+  console.log("Localhost WebSocket connection closed");
+});
+
+// Example 2: Cloud SSL WebSocket connection (wss)
+const wsCloud = new WebSocket(
+  `wss://your-domain.com/ws/prompts/?token=${jwtToken}`
+);
+
+wsCloud.on("open", function open() {
+  console.log("Connected to cloud WebSocket");
+  // Send a test message
+  wsCloud.send(JSON.stringify({ message: "Hello from test client" }));
+});
+
+wsCloud.on("message", function message(data) {
+  console.log("Received from cloud:", data.toString());
+});
+
+wsCloud.on("error", function error(err) {
+  console.error("Cloud WebSocket error:", err);
+});
+
+wsCloud.on("close", function close() {
+  console.log("Cloud WebSocket connection closed");
+});
+```
+
+To run the test script:
+
+1. Save the code to a file, e.g., `websocket_test.js`
+2. Run the script: `node websocket_test.js`
 
 ## Development
 
