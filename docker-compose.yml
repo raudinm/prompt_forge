@@ -10,7 +10,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "6543:5432" # Expose PostgreSQL port for local access
+      - "7654:5432" # Expose PostgreSQL port for local access
     restart: unless-stopped
 
   # Django rest API container
