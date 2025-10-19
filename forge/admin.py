@@ -1,7 +1,5 @@
 from django.contrib import admin
-from .models import Prompt, PromptMetadata
-
-# Register your models here.
+from .models import Prompt, PromptMetadata, PromptEmbedding
 
 
 @admin.register(Prompt)
@@ -18,3 +16,11 @@ class PromptMetadataAdmin(admin.ModelAdmin):
     ordering = ['-prompt__created_at']
     search_fields = ['model_used', 'prompt__text']
     list_filter = ['model_used', 'sent_via_websocket']
+
+
+@admin.register(PromptEmbedding)
+class PromptEmbeddingAdmin(admin.ModelAdmin):
+    list_display = ['id', 'prompt', 'model_name']
+    ordering = ['-prompt__created_at', 'created_at']
+    search_fields = ['prompt__text', 'model_name']
+    list_filter = ['model_name', 'prompt__user__username']

@@ -11,7 +11,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "6543:5432" # Expose PostgreSQL port for local access
-    restart: unless-stop
+    restart: unless-stopped
 
   # Django rest API container
   api:
@@ -21,17 +21,18 @@ services:
       sh -c "
       python manage.py migrate --noinput &&
       python manage.py collectstatic --noinput &&
-      gunicorn prompt_forge.asgi.application --bind 0.0.0.0:8000
+      gunicorn -k uvicorn.workers.UvicornWorker prompt_forge.asgi:application --bind 0.0.0.0:8000
       "
     volumes:
       - .:/app
     environment:
+      - DEBUG=False
       - DATABASE_HOST=db
     ports:
       - "8000:8000" # Expose Django app on port 8000
     depends_on:
       - db
-    restart: unless-stop
+    restart: unless-stopped
 
   # PgAdmin container for managing PostgreSQL visually
   pgadmin:
@@ -46,7 +47,7 @@ services:
       - db
     volumes:
       - pgadmin_data:/var/lib/pgadmin
-    restart: unless-stop
+    restart: unless-stopped
 
 # Named volumes for persistent data
 volumes:

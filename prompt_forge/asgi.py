@@ -10,13 +10,15 @@ https://docs.djangoproject.com/en/5.2/howto/deployment/asgi/
 import os
 from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
-from forge.middleware.jwt_auth import JwtAuthMiddleware
 import forge.routing
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'prompt_forge.settings')
 
 # Django ASGI application
 django_asgi_app = get_asgi_application()
+
+# Import the JWT Auth Middleware
+from forge.middleware.jwt_auth import JwtAuthMiddleware
 
 # ASGI application with Channels
 application = ProtocolTypeRouter({
