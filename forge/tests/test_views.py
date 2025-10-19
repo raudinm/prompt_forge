@@ -112,7 +112,7 @@ class SignUpViewTest(TestCase):
             'email': 'newuser@example.com',
             'password': 'securepass123'
         }
-        response = self.client.post('/api/signup/', data, format='json')
+        response = self.client.post('/api/signup', data, format='json')
         self.assertEqual(response.status_code, 201)
         self.assertIn('message', response.data)
         self.assertTrue(User.objects.filter(username='newuser').exists())
@@ -126,7 +126,7 @@ class SignUpViewTest(TestCase):
             'username': 'newuser',
             'email': 'newuser@example.com'
         }
-        response = self.client.post('/api/signup/', data, format='json')
+        response = self.client.post('/api/signup', data, format='json')
         self.assertEqual(response.status_code, 400)
         self.assertIn('password', response.data)
 
