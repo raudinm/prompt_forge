@@ -85,33 +85,34 @@ This section provides instructions for setting up the application for local deve
 
 ## Environment Variables
 
-The required environment variables differ slightly between Docker and local development setups. Configure your `.env` file accordingly:
+The application requires several environment variables to be configured. Below is a comprehensive list organized by category, including default values and descriptions.
 
-### For Docker Execution
+### Database Configuration
 
-```
-SECRET_KEY=your-secret-key-here
-DEBUG=False
-ALLOWED_HOSTS=localhost,127.0.0.1
-DATABASE_NAME=your_db_name
-DATABASE_USER=your_db_user
-DATABASE_HOST=db
-DATABASE_PORT=5432
-DATABASE_PASSWORD=your_db_password
-```
+- `DATABASE_NAME`: The name of the PostgreSQL database (default: `prompt_forge`). Used to specify which database the application connects to.
+- `DATABASE_USER`: The username for database authentication (default: `postgres`). Credentials for accessing the PostgreSQL database.
+- `DATABASE_PASSWORD`: The password for database authentication (default: `postgres`). Secure password for the database user.
+- `DATABASE_HOST`: The hostname or IP address of the database server (default: `localhost` for local, `db` for Docker). Location of the PostgreSQL server.
+- `DATABASE_PORT`: The port number on which the database is running (default: `5432`). Standard PostgreSQL port.
 
-### For Local Development (Without Docker)
+### General Settings
 
-```
-SECRET_KEY=your-secret-key-here
-DEBUG=True
-ALLOWED_HOSTS=localhost,127.0.0.1
-DATABASE_NAME=your_db_name
-DATABASE_USER=your_db_user
-DATABASE_HOST=localhost
-DATABASE_PORT=5432
-DATABASE_PASSWORD=your_db_password
-```
+- `SECRET_KEY`: A secret key for Django's cryptographic signing (default: `my_super_secret_key`). Used for security features like sessions and tokens; should be unique and secret in production.
+- `DEBUG`: Enables or disables Django's debug mode (default: `True` for development, `False` for production). Controls error pages and logging verbosity.
+- `ALLOWED_HOSTS`: Comma-separated list of allowed hostnames (default: `localhost,127.0.0.1`). Hosts that can serve the application to prevent HTTP Host header attacks.
+
+### PG Admin
+
+- `PGADMIN_PORT`: The port on which PgAdmin web interface runs (default: `5050`). Port for accessing the PostgreSQL administration tool.
+- `PGADMIN_DEFAULT_EMAIL`: Default email for PgAdmin admin user (default: `admin@promptforge.io`). Login email for PgAdmin.
+- `PGADMIN_DEFAULT_PASSWORD`: Default password for PgAdmin admin user (default: `admin123`). Login password for PgAdmin; change in production.
+
+### Grafana
+
+- `GF_SECURITY_ADMIN_USER`: Admin username for Grafana (default: `admin`). Username for Grafana dashboard access.
+- `GF_SECURITY_ADMIN_PASSWORD`: Admin password for Grafana (default: `admin123`). Password for Grafana admin; secure in production.
+
+Note: For Docker setups, adjust DATABASE_HOST to `db` and DEBUG to `False`. For local development, use `localhost` and `True` respectively.
 
 ## Testing
 
@@ -176,7 +177,7 @@ CI=true pytest --ds=prompt_forge.settings -v
 
 ### Authentication Endpoints
 
-#### `POST /api/signup/`
+#### `POST /api/signup`
 
 - **Description**: Registers a new user account.
 - **Authentication**: None required
@@ -205,7 +206,7 @@ CI=true pytest --ds=prompt_forge.settings -v
     ```
 - **Special Considerations**: Username must be unique. Email is optional but recommended for password recovery.
 
-#### `POST /api/token/`
+#### `POST /api/token`
 
 - **Description**: Obtains JWT access and refresh tokens for user authentication.
 - **Authentication**: None required
@@ -232,7 +233,7 @@ CI=true pytest --ds=prompt_forge.settings -v
     ```
 - **Special Considerations**: Use the access token in Authorization header as `Bearer <token>` for authenticated requests.
 
-#### `POST /api/token/refresh/`
+#### `POST /api/token/refresh`
 
 - **Description**: Refreshes JWT access token using a valid refresh token.
 - **Authentication**: None required
@@ -259,7 +260,7 @@ CI=true pytest --ds=prompt_forge.settings -v
 
 ### Prompt Management Endpoints
 
-#### `POST /prompts/`
+#### `POST /prompts`
 
 - **Description**: Creates a new prompt, generates an AI response, and stores vector embeddings for similarity search.
 - **Authentication**: JWT Bearer token required
@@ -298,7 +299,7 @@ CI=true pytest --ds=prompt_forge.settings -v
     ```
 - **Special Considerations**: Subject to burst and sustained rate throttling. If `send_via_websocket` is true, the response is also sent via WebSocket to the authenticated user.
 
-#### `GET /prompts/similar/`
+#### `GET /prompts/similar`
 
 - **Description**: Retrieves prompts similar to the provided query using FAISS vector similarity search.
 - **Authentication**: JWT Bearer token required
@@ -338,7 +339,7 @@ CI=true pytest --ds=prompt_forge.settings -v
 
 ### WebSocket Endpoints
 
-#### `WebSocket /ws/prompts/`
+#### `WebSocket /ws/prompts`
 
 - **Description**: Establishes a real-time WebSocket connection for prompt updates.
 - **Authentication**: JWT token required as query parameter `token`
@@ -354,7 +355,62 @@ CI=true pytest --ds=prompt_forge.settings -v
     "embedding_length": "integer (optional)"
   }
   ```
-- **Special Considerations**: Connection requires valid JWT access token. Used for real-time updates when creating prompts with `send_via_websocket=true`. Supports both ws (local) and wss (SSL) protocols.
+- **Special Considerations**: Connection requires valid JWT access token. Used for real-time updates when creating prompts with `send_via_websocket=true`. Supports both ws (local) and wss (SSL) protocols. For API testing, import the 'Prompt Forge.postman_collection.json' file located in the project root into Postman to use the API.
+
+## Monitoring and Logging
+
+The application includes comprehensive monitoring and logging capabilities using Prometheus and Grafana to track application performance, database metrics, and system health.
+
+### Prometheus Configuration
+
+Prometheus is configured via `prometheus.yml` with the following settings:
+
+- **Global scrape interval**: 5 seconds
+- **Django application metrics**: Scraped from `/metrics` endpoint on the API service (`api:8000`)
+- **PostgreSQL metrics**: Collected via postgres_exporter on port 9187
+
+### Monitored Metrics
+
+The monitoring setup tracks the following key metrics:
+
+#### Django Application Metrics
+
+- **HTTP Requests**: Total requests per second by method (GET, POST, etc.)
+- **Request Latency**: Average response time for HTTP requests
+- **HTTP Errors**: 4xx and 5xx error rates over 5-minute intervals
+
+#### Database Metrics
+
+- **Active Connections**: Current number of active PostgreSQL connections
+- **Query Duration**: Average time spent on database queries
+- **Database Operations**: Rows fetched vs. inserted rates
+
+#### System Metrics
+
+- **CPU Usage**: Process CPU utilization percentage
+- **Memory Usage**: Resident memory usage in MB
+
+### Grafana Dashboard
+
+A custom Grafana dashboard is provided in `grafana_dashboard.json` for visualizing all monitored metrics. The dashboard includes:
+
+- Time-series charts for HTTP requests, latency, and error rates
+- Database connection and query performance metrics
+- CPU and memory usage graphs
+- Automatic refresh every 10 seconds
+
+To import the dashboard:
+
+1. Access Grafana at `http://localhost:8585` (default credentials: admin/admin123)
+2. Navigate to Dashboards > Import
+3. Upload or paste the contents of `grafana_dashboard.json`
+
+### Accessing Monitoring Services
+
+When running with Docker Compose, the monitoring services are available at:
+
+- **Prometheus**: http://localhost:9090
+- **Grafana**: http://localhost:8585
 
 ## WebSockets
 

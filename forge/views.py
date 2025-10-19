@@ -143,7 +143,7 @@ class SimilarPromptsView(APIView):
 
 class SignUpView(generics.CreateAPIView):
     serializer_class = SignUpSerializer
-    throttle_classes = [CustomBurstRateThrottle, CustomSustainedRateThrottle]
+    throttle_classes = []
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
