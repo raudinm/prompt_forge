@@ -143,10 +143,11 @@ class SimilarPromptsView(APIView):
 
 class SignUpView(generics.CreateAPIView):
     serializer_class = SignUpSerializer
+    throttle_classes = [CustomBurstRateThrottle, CustomSustainedRateThrottle]
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            user = serializer.save()
+            serializer.save()
             return Response({"message": "User created successfully"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
