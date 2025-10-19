@@ -1,3 +1,9 @@
+# generate local file for env_vars
+resource "local_file" "env_file" {
+  content  = var.env_vars
+  filename = "${path.module}/../.env"
+}
+
 resource "null_resource" "deploy_promptforge" {
 
   # Step: compress project directory into tar.gz archive
@@ -36,11 +42,23 @@ resource "null_resource" "deploy_promptforge" {
     }
   }
 
+  provisioner "file" {
+    source      = "../.env"
+    destination = "/tmp/.env"
+    connection {
+      type        = "ssh"
+      host        = var.deploy_host
+      user        = var.deploy_user
+      private_key = var.ssh_private_key
+    }
+  }
+
   # Step: execute deployment script remotely
   provisioner "remote-exec" {
     inline = [
+      "export DEPLOY_USER='${var.deploy_user}'",
       "chmod +x /tmp/deploy.sh",
-      "sudo /tmp/deploy.sh"
+      "/tmp/deploy.sh"
     ]
     connection {
       type        = "ssh"
