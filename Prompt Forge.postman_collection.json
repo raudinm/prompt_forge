@@ -22,9 +22,9 @@
 					}
 				},
 				"url": {
-					"raw": "{{remote_host}}/api/token",
+					"raw": "{{host}}/api/token",
 					"host": [
-						"{{remote_host}}"
+						"{{host}}"
 					],
 					"path": [
 						"api",
@@ -148,8 +148,27 @@
 		{
 			"name": "SignUp",
 			"request": {
-				"method": "GET",
-				"header": []
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"username\": \"demouser\",\r\n    \"password\": \"demouser123\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host}}/api/signup",
+					"host": [
+						"{{host}}"
+					],
+					"path": [
+						"api",
+						"signup"
+					]
+				}
 			},
 			"response": []
 		}
@@ -160,6 +179,7 @@
 			"script": {
 				"type": "text/javascript",
 				"packages": {},
+				"requests": {},
 				"exec": [
 					""
 				]
@@ -170,6 +190,7 @@
 			"script": {
 				"type": "text/javascript",
 				"packages": {},
+				"requests": {},
 				"exec": [
 					""
 				]
@@ -183,8 +204,7 @@
 		},
 		{
 			"key": "remote_host",
-			"value": "https://promptforge.duckdns.org",
-			"type": "string"
+			"value": "https://promptforge.duckdns.org"
 		},
 		{
 			"key": "access_token",

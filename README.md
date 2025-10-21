@@ -25,7 +25,7 @@ This is the recommended method for running the application in both development a
 
    ```bash
    git clone https://github.com/raudinm/prompt_forge.git
-   cd prompt-forge
+   cd prompt_forge
    ```
 
 2. **Create the .env file**
